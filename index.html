@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4efe8" />
+  <title>Charlie & Marlee Feeding Tracker</title>
+  <style>
+    :root {
+      --bg: #f4efe8;
+      --card: #fffdf9;
+      --text: #2f2b27;
+      --muted: #766f67;
+      --accent: #5d7a68;
+      --accent-dark: #486153;
+      --border: #e4ddd4;
+      --soft: #f8f4ef;
+      --shadow: 0 12px 30px rgba(62, 49, 38, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 22px;
+    }
+
+    .app {
+      width: min(100%, 440px);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 26px 20px 24px;
+    }
+
+    .dogs {
+      font-size: 46px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: 27px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      margin: 8px 0 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .meal {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      background: #fff;
+    }
+
+    .meal-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      background: var(--soft);
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-bottom: 12px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+    }
+
+    .last-fed {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .fed-by {
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: 14px;
+    }
+
+    .person-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .08s ease, background .15s ease;
+    }
+
+    button:active { transform: scale(0.98); }
+
+    .person {
+      background: var(--accent);
+      color: white;
+    }
+
+    .person:hover { background: var(--accent-dark); }
+
+    .notify {
+      width: 100%;
+      margin: 2px 0 14px;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .reset {
+      width: 100%;
+      margin-top: 4px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 14px;
+      padding: 11px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+      margin: 14px 8px 0;
+    }
+
+    .toast {
+      display: none;
+      margin: 10px 0 14px;
+      padding: 11px;
+      border-radius: 13px;
+      background: #e9f0eb;
+      color: #355243;
+      text-align: center;
+      font-weight: 650;
+      font-size: 14px;
+    }
+
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <div class="dogs">🐶🐶</div>
+      <h1>Charlie & Marlee</h1>
+      <p class="subtitle">Feeding tracker for Kaylee & Kate</p>
+
+      <button class="notify" onclick="enableNotifications()">
+        🔔 Enable notifications
+      </button>
+
+      <div class="toast" id="toast"></div>
+
+      <section class="meal">
+        <div class="meal-title">🌅 Breakfast</div>
+
+        <div class="status">
+          <div class="label">Last breakfast</div>
+          <div class="last-fed" id="breakfastTime">No breakfast logged yet</div>
+          <div class="fed-by" id="breakfastBy"></div>
+        </div>
+
+        <div class="person-buttons">
+          <button class="person" onclick="logFeeding('breakfast', 'Kaylee')">Kaylee fed them</button>
+          <button class="person" onclick="logFeeding('breakfast', 'Kate')">Kate fed them</button>
+        </div>
+      </section>
+
+      <section class="meal">
+        <div class="meal-title">🌙 Dinner</div>
+
+        <div class="status">
+          <div class="label">Last dinner</div>
+          <div class="last-fed" id="dinnerTime">No dinner logged yet</div>
+          <div class="fed-by" id="dinnerBy"></div>
+        </div>
+
+        <div class="person-buttons">
+          <button class="person" onclick="logFeeding('dinner', 'Kaylee')">Kaylee fed them</button>
+          <button class="person" onclick="logFeeding('dinner', 'Kate')">Kate fed them</button>
+        </div>
+      </section>
+
+      <button class="reset" onclick="clearLog()">Clear demo history</button>
+
+      <p class="note">
+        This version stores data on the current phone only. Browser notifications
+        can confirm a feeding on the phone that logged it. Cross-phone syncing and
+        notifications to the other person require a shared backend, such as Google
+        Sheets + Apps Script or another notification service.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "charlieMarleeFeeding";
+
+    function getData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { breakfast: null, dinner: null };
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function formatDateTime(dateString) {
+      const d = new Date(dateString);
+      return d.toLocaleString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function renderMeal(meal, data) {
+      const timeEl = document.getElementById(meal + "Time");
+      const byEl = document.getElementById(meal + "By");
+      const entry = data[meal];
+
+      if (!entry) {
+        timeEl.textContent =
+          meal === "breakfast"
+            ? "No breakfast logged yet"
+            : "No dinner logged yet";
+        byEl.textContent = "";
+        return;
+      }
+
+      timeEl.textContent = formatDateTime(entry.time);
+      byEl.textContent = "Fed by " + entry.person;
+    }
+
+    function render() {
+      const data = getData();
+      renderMeal("breakfast", data);
+      renderMeal("dinner", data);
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    async function enableNotifications() {
+      if (!("Notification" in window)) {
+        showToast("Notifications are not supported in this browser.");
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+
+      if (permission === "granted") {
+        showToast("Notifications enabled.");
+        new Notification("Dog Feeding Tracker", {
+          body: "Notifications are now enabled."
+        });
+      } else {
+        showToast("Notification permission was not granted.");
+      }
+    }
+
+    function sendNotification(meal, person) {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+
+      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+
+      new Notification("Charlie & Marlee have been fed 🐶", {
+        body: `${mealName} was logged by ${person}.`
+      });
+    }
+
+    function logFeeding(meal, person) {
+      const data = getData();
+
+      data[meal] = {
+        person,
+        time: new Date().toISOString()
+      };
+
+      saveData(data);
+      render();
+
+      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+      showToast(`✓ ${mealName} logged by ${person}`);
+      sendNotification(meal, person);
+    }
+
+    function clearLog() {
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+      showToast("Demo history cleared.");
+    }
+
+    render();
+  </script>
+</body>
+</html>
