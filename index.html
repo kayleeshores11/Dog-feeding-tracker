@@ -216,28 +216,17 @@
         </div>
       </section>
 
-      <button class="reset" onclick="clearLog()">Clear demo history</button>
-
       <p class="note">
-        This version stores data on the current phone only. Browser notifications
-        can confirm a feeding on the phone that logged it. Cross-phone syncing and
-        notifications to the other person require a shared backend, such as Google
-        Sheets + Apps Script or another notification service.
+        Breakfast and dinner are synced through the shared Google Sheet. The page
+        refreshes shared status automatically while open. Browser notifications
+        currently confirm feeding on the device that logs it; cross-device push
+        alerts will be added separately.
       </p>
     </section>
   </main>
 
   <script>
-    const STORAGE_KEY = "charlieMarleeFeeding";
-
-    function getData() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : { breakfast: null, dinner: null };
-    }
-
-    function saveData(data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
+    const API_URL = "https://script.google.com/macros/s/AKfycbwKFTvS-ttv4_kFki1GJmuyP4qbdaU5k-r_9CNoHZbRWb8w09qzrYk68kVu-9a_ucjfDQ/exec";
 
     function formatDateTime(dateString) {
       const d = new Date(dateString);
@@ -250,10 +239,9 @@
       });
     }
 
-    function renderMeal(meal, data) {
+    function renderMeal(meal, entry) {
       const timeEl = document.getElementById(meal + "Time");
       const byEl = document.getElementById(meal + "By");
-      const entry = data[meal];
 
       if (!entry) {
         timeEl.textContent =
@@ -268,17 +256,88 @@
       byEl.textContent = "Fed by " + entry.person;
     }
 
-    function render() {
-      const data = getData();
-      renderMeal("breakfast", data);
-      renderMeal("dinner", data);
-    }
-
     function showToast(message) {
       const toast = document.getElementById("toast");
       toast.textContent = message;
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    function jsonpRequest(params) {
+      return new Promise((resolve, reject) => {
+        const callbackName =
+          "dogTrackerCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+        const script = document.createElement("script");
+        const query = new URLSearchParams({
+          ...params,
+          callback: callbackName
+        });
+
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Request timed out"));
+        }, 10000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Could not reach feeding tracker backend"));
+        };
+
+        script.src = API_URL + "?" + query.toString();
+        document.body.appendChild(script);
+      });
+    }
+
+    async function loadStatus() {
+      try {
+        const data = await jsonpRequest({ action: "status" });
+
+        if (!data.success) {
+          throw new Error(data.error || "Unable to load status");
+        }
+
+        renderMeal("breakfast", data.breakfast);
+        renderMeal("dinner", data.dinner);
+      } catch (error) {
+        console.error(error);
+        showToast("Could not load shared feeding status.");
+      }
+    }
+
+    async function logFeeding(meal, person) {
+      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+      showToast(`Logging ${mealName.toLowerCase()}...`);
+
+      try {
+        const result = await jsonpRequest({
+          action: "feed",
+          meal: meal,
+          person: person
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || "Unable to log feeding");
+        }
+
+        showToast(`✓ ${mealName} logged by ${person}`);
+        sendNotification(meal, person);
+        await loadStatus();
+      } catch (error) {
+        console.error(error);
+        showToast("Feeding was not saved. Check the connection.");
+      }
     }
 
     async function enableNotifications() {
@@ -290,9 +349,9 @@
       const permission = await Notification.requestPermission();
 
       if (permission === "granted") {
-        showToast("Notifications enabled.");
-        new Notification("Dog Feeding Tracker", {
-          body: "Notifications are now enabled."
+        showToast("Notifications enabled on this device.");
+        new Notification("Charlie & Marlee", {
+          body: "Feeding notifications are enabled on this device."
         });
       } else {
         showToast("Notification permission was not granted.");
@@ -310,29 +369,8 @@
       });
     }
 
-    function logFeeding(meal, person) {
-      const data = getData();
-
-      data[meal] = {
-        person,
-        time: new Date().toISOString()
-      };
-
-      saveData(data);
-      render();
-
-      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
-      showToast(`✓ ${mealName} logged by ${person}`);
-      sendNotification(meal, person);
-    }
-
-    function clearLog() {
-      localStorage.removeItem(STORAGE_KEY);
-      render();
-      showToast("Demo history cleared.");
-    }
-
-    render();
+    loadStatus();
+    setInterval(loadStatus, 30000);
   </script>
 </body>
 </html>
