@@ -216,8 +216,24 @@
         </div>
       </section>
 
+
+      <section class="meal">
+        <div class="meal-title">💧 Water Bowl</div>
+
+        <div class="status">
+          <div class="label">Last cleaned</div>
+          <div class="last-fed" id="waterTime">No cleaning logged yet</div>
+          <div class="fed-by" id="waterBy"></div>
+        </div>
+
+        <div class="person-buttons">
+          <button class="person" onclick="logFeeding('water', 'Kaylee')">Kaylee cleaned it</button>
+          <button class="person" onclick="logFeeding('water', 'Kate')">Kate cleaned it</button>
+        </div>
+      </section>
+
       <p class="note">
-        Breakfast and dinner are synced through the shared Google Sheet. The page
+        Breakfast, dinner, and water-bowl cleaning are synced through the shared Google Sheet. The page
         refreshes shared status automatically while open. Browser notifications
         currently confirm feeding on the device that logs it; cross-device push
         alerts will be added separately.
@@ -244,10 +260,13 @@
       const byEl = document.getElementById(meal + "By");
 
       if (!entry) {
-        timeEl.textContent =
-          meal === "breakfast"
-            ? "No breakfast logged yet"
-            : "No dinner logged yet";
+        if (meal === "breakfast") {
+          timeEl.textContent = "No breakfast logged yet";
+        } else if (meal === "dinner") {
+          timeEl.textContent = "No dinner logged yet";
+        } else {
+          timeEl.textContent = "No cleaning logged yet";
+        }
         byEl.textContent = "";
         return;
       }
@@ -310,6 +329,7 @@
 
         renderMeal("breakfast", data.breakfast);
         renderMeal("dinner", data.dinner);
+        renderMeal("water", data.water);
       } catch (error) {
         console.error(error);
         showToast("Could not load shared feeding status.");
@@ -317,7 +337,9 @@
     }
 
     async function logFeeding(meal, person) {
-      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+      const mealName = meal === "water"
+        ? "Water bowl cleaning"
+        : meal.charAt(0).toUpperCase() + meal.slice(1);
       showToast(`Logging ${mealName.toLowerCase()}...`);
 
       try {
@@ -362,11 +384,16 @@
       if (!("Notification" in window)) return;
       if (Notification.permission !== "granted") return;
 
-      const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+      const mealName = meal === "water"
+        ? "Water bowl cleaning"
+        : meal.charAt(0).toUpperCase() + meal.slice(1);
 
-      new Notification("Charlie & Marlee have been fed 🐶", {
-        body: `${mealName} was logged by ${person}.`
-      });
+      new Notification(
+        meal === "water" ? "Charlie & Marlee's water bowl was cleaned 💧" : "Charlie & Marlee have been fed 🐶",
+        {
+          body: `${mealName} was logged by ${person}.`
+        }
+      );
     }
 
     loadStatus();
